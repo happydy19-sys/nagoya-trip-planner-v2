@@ -1,13 +1,73 @@
-import React, { useState, useMemo } from 'react';
+iimport React, { useState, useMemo } from 'react';
+import { 
+  MapPin, CloudSun, Utensils, BedDouble, Phone, 
+  Plane, Wallet, ShoppingBag, Edit3, Trash2, 
+  ArrowUp, ArrowDown, ExternalLink, Moon, Sun,
+  CheckSquare, Info, Camera, Train, Sparkles, 
+  Footprints, Bus, Banknote, Navigation
+} from 'lucide-react';
+
+// --- TypeScript Interfaces ---
+interface Weather {
+  temp: string;
+  icon: 'sun' | 'cloud' | 'snow';
+  desc: string;
+  wear: string;
+}
+
+interface Hotel {
+  name: string;
+  address: string;
+  checkIn: string;
+}
+
+type EventType = 'transport' | 'food' | 'sight' | 'shopping' | 'relax';
+
+interface TripEvent {
+  id: string;
+  time: string;
+  title: string;
+  type: EventType;
+  note?: string;
+  highlight?: string;
+  guide?: string;
+}
+
+interface TripDay {
+  id: number;
+  date: string;
+  title: string;
+  weather: Weather;
+  hotel: Hotel;
+  events: TripEvent[];
+}
+
+interface Expense {
+  id: number;
+  item: string;
+  cost: number; // 儲存為數字類型
+  currency: 'JPY' | 'TWD';
+  date: string;
+  rateAtTimeOfEntry: number; // 鎖定的匯率
+}
+
+interface NewExpenseForm {
+  id: number;
+  item: string;
+  cost: string; // 保持 string 類型以便與 input 綁定
+  currency: 'JPY' | 'TWD';
+  date: string;
+}
+// --- 結束 TypeScript Interfaces ---
+
 
 // --- 設定與模擬資料 ---
 
-// 定義主題色，主要使用名古屋的味噌紅和金鯱金
 const THEME = {
-  primary: 'bg-red-900', // 名古屋味噌紅
+  primary: 'bg-red-900', 
   primaryText: 'text-red-900',
-  secondary: 'bg-amber-500', // 金鯱金
-  bg: 'bg-stone-50', // 和紙米色
+  secondary: 'bg-amber-500', 
+  bg: 'bg-stone-50', 
   lineColor: 'border-red-900',
   dashedLine: 'border-stone-400'
 };
@@ -17,12 +77,12 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 /**
  * 處理導航動作，程式化開啟 Google Maps 連結。
+ * @param {string} query 搜尋地點的關鍵字。
  */
-const navigateTo = (query) => {
+const navigateTo = (query: string) => {
     if (!query) return;
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
     try {
-      // 確保在 iFrame 環境下能成功開啟新分頁
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
       console.error("無法開啟新視窗，可能被瀏覽器阻擋:", e);
@@ -30,20 +90,20 @@ const navigateTo = (query) => {
 };
 
 // 使用 confirm 替代 window.confirm
-const customConfirm = (message) => {
-  // 注意：在 Vercel 部署的瀏覽器環境中，window.confirm 仍是可用的。
-  return window.confirm(message); 
+const customConfirm = (message: string): boolean => {
+  console.warn("使用瀏覽器內建 confirm，建議改用 custom modal。");
+  return window.confirm(message);
 };
 
 
-// 初始行程數據
-const INITIAL_TRIP_DATA = [
+// 根據 TripDay 介面調整模擬資料類型
+const INITIAL_TRIP_DATA: TripDay[] = [
   // Day 1
   {
     id: 1,
     date: '12/18 (四)',
     title: 'Day 1｜犬山城半日遊 & 榮夜景',
-    weather: { temp: '4°C - 12°C', icon: 'sunny', desc: '晴時多雲', wear: '建議洋蔥式穿搭，犬山城風大需圍巾。' },
+    weather: { temp: '4°C - 12°C', icon: 'sun', desc: '晴時多雲', wear: '建議洋蔥式穿搭，犬山城風大需圍巾。' },
     hotel: { name: '名古屋站前大和 Roynet 飯店', address: '名駅南 1-23-20', checkIn: '14:00' },
     events: [
       { id: '1-1', time: '02:55', title: '樂桃 MM722 飛行中', type: 'transport', note: '補眠時間 / 預計 06:25 抵達中部國際機場' },
@@ -77,7 +137,7 @@ const INITIAL_TRIP_DATA = [
     id: 2,
     date: '12/19 (五)',
     title: 'Day 2｜吉卜力公園全攻略',
-    weather: { temp: '3°C - 11°C', icon: 'cloudy', desc: '多雲陰天', wear: '園區很大都在走路，請穿最好走的鞋。' },
+    weather: { temp: '3°C - 11°C', icon: 'cloud', desc: '多雲陰天', wear: '園區很大都在走路，請穿最好走的鞋。' },
     hotel: { name: '名古屋站前大和 Roynet 飯店', address: '續住', checkIn: '-' },
     events: [
       { id: '2-1', time: '07:00', title: '地鐵東山線 → 磁浮丘陵線', type: 'transport', note: '於藤丘站轉乘 Linimo 至愛地球博公園' },
@@ -97,7 +157,7 @@ const INITIAL_TRIP_DATA = [
     id: 3,
     date: '12/20 (六)',
     title: 'Day 3｜歷史散策 & 港口花火',
-    weather: { temp: '5°C - 13°C', icon: 'sunny', desc: '晴朗乾燥', wear: '海邊晚上看煙火極冷，帽子手套暖暖包必備。' },
+    weather: { temp: '5°C - 13°C', icon: 'sun', desc: '晴朗乾燥', wear: '海邊晚上看煙火極冷，帽子手套暖暖包必備。' },
     hotel: { name: '金星 Neo 飯店', address: '新榮 2-45-8', checkIn: '20:30' },
     events: [
       { id: '3-1', time: '09:00', title: '客美多咖啡 (Komeda)', type: 'food', 
@@ -129,7 +189,7 @@ const INITIAL_TRIP_DATA = [
     id: 4,
     date: '12/21 (日)',
     title: 'Day 4｜飛驒高山・合掌村',
-    weather: { temp: '-2°C - 5°C', icon: 'ac_unit', desc: '山區降雪', wear: '山區極冷！發熱衣、防滑鞋、毛帽、手套。' },
+    weather: { temp: '-2°C - 5°C', icon: 'snow', desc: '山區降雪', wear: '山區極冷！發熱衣、防滑鞋、毛帽、手套。' },
     hotel: { name: 'Dormy Inn PREMIUM 榮', address: '錦 2-20-1', checkIn: '20:00' },
     events: [
       { id: '4-1', time: '08:00', title: '巴士一日團出發', type: 'transport', note: '名古屋站太閣通口集合，路程約 2.5 小時' },
@@ -152,7 +212,7 @@ const INITIAL_TRIP_DATA = [
     id: 5,
     date: '12/22 (一)',
     title: 'Day 5｜大須文化 & 招財貓',
-    weather: { temp: '6°C - 14°C', icon: 'sunny', desc: '晴時多雲', wear: '輕鬆便裝，方便在商場試穿衣服。' },
+    weather: { temp: '6°C - 14°C', icon: 'sun', desc: '晴時多雲', wear: '輕鬆便裝，方便在商場試穿衣服。' },
     hotel: { name: '溫暖的家', address: 'Taiwan', checkIn: '-' },
     events: [
       { id: '5-1', time: '09:30', title: '地鐵鶴舞線', type: 'transport', note: '前往大須觀音站，寄放行李' },
@@ -188,48 +248,41 @@ const SOUVENIR_LIST = [
 
 // --- 元件 ---
 
-// 使用 Material Symbols 圖標名稱替換 lucide-react 的圖標
-const Icon = ({ name, size = 18, className = '' }) => (
-    <span className={`material-symbols-outlined ${className}`} style={{ fontSize: `${size}px` }}>
-        {name}
-    </span>
-);
-
-const Tag = ({ text, color }) => (
+const Tag: React.FC<{ text: string, color: string }> = ({ text, color }) => (
   <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-md mr-1 border ${color}`}>
     {text}
   </span>
 );
 
-export default function App() { // 這是正確的元件匯出
-  const [activeTab, setActiveTab] = useState('schedule');
-  const [currentDayId, setCurrentDayId] = useState(1);
-  const [tripData, setTripData] = useState(INITIAL_TRIP_DATA);
-  const [isEditMode, setIsEditMode] = useState(false);
+export default function App() {
+  const [activeTab, setActiveTab] = useState<'schedule' | 'wallet' | 'info'>('schedule');
+  const [currentDayId, setCurrentDayId] = useState<number>(1);
+  const [tripData, setTripData] = useState<TripDay[]>(INITIAL_TRIP_DATA);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
   
-  // 記帳狀態：增加 date
-  const [expenses, setExpenses] = useState([]);
-  const [newExpense, setNewExpense] = useState({ 
+  // 記帳狀態：明確指定為 Expense[] 陣列，解決 TS2339
+  const [expenses, setExpenses] = useState<Expense[]>([]); 
+  const [newExpense, setNewExpense] = useState<NewExpenseForm>({ 
     id: Date.now(), 
     item: '', 
-    cost: '', 
+    cost: '', // 這裡必須是 string (input value)
     currency: 'JPY',
-    date: getTodayDate() // 預設為今日
+    date: getTodayDate() 
   });
   
-  // 全域匯率狀態 (1 JPY = X TWD)
-  const [exchangeRate, setExchangeRate] = useState(0.2250);
-  const [converterAmount, setConverterAmount] = useState('');
+  // 全域匯率狀態 (用於換算工具和記帳當下的鎖定)
+  const [exchangeRate, setExchangeRate] = useState<number>(0.2250);
+  const [converterAmount, setConverterAmount] = useState<string>('');
 
   // 匯率換算：使用當前全域匯率
   const calculatedCost = useMemo(() => {
-    const rate = parseFloat(exchangeRate) || 0;
+    const rate = exchangeRate || 0;
     return converterAmount ? (parseFloat(converterAmount) * rate).toFixed(0) : '0';
   }, [converterAmount, exchangeRate]);
 
-  // 總花費計算：使用每筆紀錄鎖定的匯率
+  // 總花費計算：使用每筆紀錄鎖定的匯率，並明確定義 curr 為 Expense 類型
   const totalSpentTWD = useMemo(() => {
-    return expenses.reduce((acc, curr) => {
+    return expenses.reduce((acc: number, curr: Expense) => { // <--- FIX TS2339/TS7031
       // 如果是日幣，使用當時鎖定的匯率 (curr.rateAtTimeOfEntry) 進行換算
       if (curr.currency === 'JPY') {
         return acc + (curr.cost * curr.rateAtTimeOfEntry);
@@ -240,7 +293,7 @@ export default function App() { // 這是正確的元件匯出
   }, [expenses]); 
 
   // --- 行程編輯功能 ---
-  const moveEvent = (dayId, eventIndex, direction) => {
+  const moveEvent = (dayId: number, eventIndex: number, direction: 'up' | 'down') => {
     const newTripData = [...tripData];
     const dayIndex = newTripData.findIndex(d => d.id === dayId);
     if (dayIndex === -1) return;
@@ -255,7 +308,7 @@ export default function App() { // 這是正確的元件匯出
     setTripData(newTripData);
   };
 
-  const deleteEvent = (dayId, eventId) => {
+  const deleteEvent = (dayId: number, eventId: string) => {
     if(!customConfirm('確定刪除此行程？')) return; 
     const newTripData = [...tripData];
     const dayIndex = newTripData.findIndex(d => d.id === dayId);
@@ -267,21 +320,21 @@ export default function App() { // 這是正確的元件匯出
 
   // --- 記帳功能 ---
   const addExpense = () => {
-    // 簡單的輸入驗證
-    if (!newExpense.item || !newExpense.cost || !newExpense.date || parseFloat(newExpense.cost) <= 0) {
-        alert('請確保輸入了品項、有效金額和日期。'); // 使用 alert 作為簡單提示
-        return;
-    }
+    if (!newExpense.item || !newExpense.cost || !newExpense.date) return;
     
-    const rate = parseFloat(exchangeRate) || 0;
-    const costValue = parseFloat(newExpense.cost);
+    const rate = exchangeRate || 0;
+    const costValue = parseFloat(newExpense.cost); // 轉換為數字
+
+    if (isNaN(costValue)) return; // 安全檢查
 
     setExpenses([...expenses, { 
       ...newExpense, 
       id: Date.now(),
       cost: costValue, // 儲存為數字
-      // 鎖定當前匯率：如果是日幣才鎖定，台幣則為 1
-      rateAtTimeOfEntry: newExpense.currency === 'JPY' ? rate : 1, 
+      // 鎖定當前匯率
+      rateAtTimeOfEntry: rate, 
+      // 確保 currency 是正確的類型
+      currency: newExpense.currency as 'JPY' | 'TWD' 
     }]);
 
     // 重設表單，日期維持今日
@@ -294,28 +347,25 @@ export default function App() { // 這是正確的元件匯出
     });
   };
   
-  const deleteExpense = (id) => {
+  const deleteExpense = (id: number) => {
     if (customConfirm('確定刪除此筆帳目？')) {
-      setExpenses(expenses.filter(ex => ex.id !== id));
+      setExpenses(expenses.filter((ex: Expense) => ex.id !== id));
     }
   };
 
 
-  const getEventStyle = (type) => {
+  const getEventStyle = (type: EventType) => {
     switch(type) {
-      case 'food': return { icon: <Icon name="restaurant" />, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' };
-      case 'sight': return { icon: <Icon name="photo_camera" />, color: 'text-red-700', bg: 'bg-white', border: 'border-red-100' };
-      case 'shopping': return { icon: <Icon name="shopping_bag" />, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' };
-      case 'relax': return { icon: <Icon name="bedtime" />, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' };
-      default: return { icon: <Icon name="location_pin" />, color: 'text-stone-600', bg: 'bg-white', border: 'border-stone-200' };
+      case 'food': return { icon: <Utensils size={18} />, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' };
+      case 'sight': return { icon: <Camera size={18} />, color: 'text-red-700', bg: 'bg-white', border: 'border-red-100' };
+      case 'shopping': return { icon: <ShoppingBag size={18} />, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' };
+      case 'relax': return { icon: <Moon size={18} />, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' };
+      default: return { icon: <MapPin size={18} />, color: 'text-stone-600', bg: 'bg-white', border: 'border-stone-200' };
     }
   };
 
   return (
-    <div className={`flex flex-col h-screen w-full max-w-md mx-auto ${THEME.bg} overflow-hidden font-sans antialiased`}>
-      
-      {/* 引入 Google Material Symbols - 確保圖示功能正常 (這是取代 lucide-react 的關鍵步驟) */}
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <div className={`flex flex-col h-screen w-full max-w-md mx-auto ${THEME.bg} overflow-hidden font-sans text-stone-800`}>
       
       {/* 頂部 Header */}
       <header className={`${THEME.primary} text-white px-5 py-4 shadow-xl shrink-0 relative z-20`}>
@@ -333,7 +383,7 @@ export default function App() { // 這是正確的元件匯出
                 className={`p-2 rounded-full transition-colors ${isEditMode ? 'bg-amber-500 text-white' : 'bg-red-800 text-red-200'}`}
                 aria-label={isEditMode ? '退出編輯模式' : '進入編輯模式'}
               >
-                <Icon name="edit" size={18} />
+                <Edit3 size={18} />
               </button>
             )}
           </div>
@@ -349,7 +399,7 @@ export default function App() { // 這是正確的元件匯出
             {/* 日期選擇器 */}
             <div className="sticky top-0 z-10 bg-stone-50/95 backdrop-blur-sm pt-2 pb-2 px-2 shadow-sm border-b border-stone-200">
               <div className="flex space-x-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
-                {tripData.map(day => (
+                {tripData.map((day: TripDay) => (
                   <button
                     key={day.id}
                     onClick={() => setCurrentDayId(day.id)}
@@ -365,7 +415,7 @@ export default function App() { // 這是正確的元件匯出
             </div>
 
             {/* 當日詳情 */}
-            {tripData.filter(d => d.id === currentDayId).map(day => (
+            {tripData.filter(d => d.id === currentDayId).map((day: TripDay) => (
               <div key={day.id} className="animate-fadeIn px-4 pt-4">
                 
                 {/* 每日資訊卡 - 住宿導航使用 <button> 觸發 navigateTo */}
@@ -374,7 +424,7 @@ export default function App() { // 這是正確的元件匯出
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
                       <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
-                        <Icon name={day.weather.icon} size={20} />
+                        {day.weather.icon === 'sun' ? <Sun size={20} /> : <CloudSun size={20} />}
                       </div>
                       <div>
                         <div className="font-bold text-stone-800">{day.weather.temp}</div>
@@ -383,7 +433,7 @@ export default function App() { // 這是正確的元件匯出
                     </div>
                     <div className="text-right max-w-[50%]">
                       <div className="flex items-center justify-end gap-1 text-xs text-amber-600 font-bold uppercase mb-0.5">
-                        <Icon name="hotel" size={12} /> Hotel
+                        <BedDouble size={12} /> Hotel
                       </div>
                       <div className="flex items-center justify-end gap-1">
                         <div className="font-bold text-stone-800 text-xs truncate">{day.hotel.name}</div>
@@ -394,7 +444,7 @@ export default function App() { // 這是正確的元件匯出
                               className="p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200 transition-colors shrink-0"
                               aria-label={`導航至 ${day.hotel.name}`}
                             >
-                              <Icon name="navigation" size={12} />
+                              <Navigation size={12} />
                             </button>
                          )}
                       </div>
@@ -408,17 +458,13 @@ export default function App() { // 這是正確的元件匯出
 
                 {/* 行程時間軸 */}
                 <div className="relative pb-4">
-                  {day.events.map((event, idx) => {
+                  {day.events.map((event: TripEvent, idx: number) => {
                     const isLast = idx === day.events.length - 1;
                     const style = getEventStyle(event.type);
                     const canNavigate = event.type !== 'transport'; // 只有非交通的項目才需要導航
 
                     // 交通事件的獨立樣式
                     if (event.type === 'transport') {
-                      const transportIcon = event.title.includes('飛機') ? "flight" : 
-                                            event.title.includes('巴士') ? "directions_bus" :
-                                            event.title.includes('走') ? "directions_walk" :
-                                            "train";
                       return (
                         <div key={event.id} className="relative flex pl-2 pb-8">
                           {!isLast && (
@@ -427,7 +473,10 @@ export default function App() { // 這是正確的元件匯出
                           
                           <div className="relative z-10 w-8 flex flex-col items-center pt-1">
                              <div className="bg-stone-200 text-stone-500 p-1.5 rounded-full ring-4 ring-stone-50">
-                                <Icon name={transportIcon} size={14}/>
+                               {event.title.includes('飛機') ? <Plane size={14}/> : 
+                                event.title.includes('巴士') ? <Bus size={14} /> :
+                                event.title.includes('走') ? <Footprints size={14} /> :
+                                <Train size={14} />}
                              </div>
                           </div>
                           
@@ -440,9 +489,9 @@ export default function App() { // 這是正確的元件匯出
                             
                             {isEditMode && (
                               <div className="flex gap-2 mt-2">
-                                <button onClick={() => moveEvent(day.id, idx, 'up')} className="p-1 bg-stone-200 rounded text-stone-600"><Icon name="arrow_upward" size={12} /></button>
-                                <button onClick={() => moveEvent(day.id, idx, 'down')} className="p-1 bg-stone-200 rounded text-stone-600"><Icon name="arrow_downward" size={12} /></button>
-                                <button onClick={() => deleteEvent(day.id, event.id)} className="p-1 bg-red-100 rounded text-red-600"><Icon name="delete" size={12} /></button>
+                                <button onClick={() => moveEvent(day.id, idx, 'up')} className="p-1 bg-stone-200 rounded text-stone-600"><ArrowUp size={12} /></button>
+                                <button onClick={() => moveEvent(day.id, idx, 'down')} className="p-1 bg-stone-200 rounded text-stone-600"><ArrowDown size={12} /></button>
+                                <button onClick={() => deleteEvent(day.id, event.id)} className="p-1 bg-red-100 rounded text-red-600"><Trash2 size={12} /></button>
                               </div>
                             )}
                           </div>
@@ -483,7 +532,7 @@ export default function App() { // 這是正確的元件匯出
                                   className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-100 px-2 py-1 rounded-full border border-red-200 hover:bg-red-200 transition-colors"
                                   aria-label={`導航至 ${event.title}`}
                                 >
-                                  <Icon name="pin_drop" size={10} /> 導航
+                                  <Navigation size={10} /> 導航
                                 </button>
                               )}
                           </div>
@@ -492,7 +541,7 @@ export default function App() { // 這是正確的元件匯出
                           {event.guide && (
                             <div className="mt-3 bg-stone-50/80 rounded-lg p-3 border border-stone-100">
                               <div className="flex items-center gap-1.5 text-xs font-bold text-stone-500 mb-1">
-                                <Icon name="auto_fix_high" size={12} /> 筆記
+                                <Sparkles size={12} /> 筆記
                               </div>
                               <p className="text-xs text-stone-600 leading-5 whitespace-pre-line">
                                 {event.guide}
@@ -502,9 +551,9 @@ export default function App() { // 這是正確的元件匯出
 
                            {isEditMode && (
                               <div className="flex gap-2 mt-3 pt-2 border-t border-stone-100">
-                                <button onClick={() => moveEvent(day.id, idx, 'up')} className="p-1 bg-stone-100 rounded text-stone-600"><Icon name="arrow_upward" size={14} /></button>
-                                <button onClick={() => moveEvent(day.id, idx, 'down')} className="p-1 bg-stone-100 rounded text-stone-600"><Icon name="arrow_downward" size={14} /></button>
-                                <button onClick={() => deleteEvent(day.id, event.id)} className="p-1 bg-red-50 rounded text-red-600"><Icon name="delete" size={14} /></button>
+                                <button onClick={() => moveEvent(day.id, idx, 'up')} className="p-1 bg-stone-100 rounded text-stone-600"><ArrowUp size={14} /></button>
+                                <button onClick={() => moveEvent(day.id, idx, 'down')} className="p-1 bg-stone-100 rounded text-stone-600"><ArrowDown size={14} /></button>
+                                <button onClick={() => deleteEvent(day.id, event.id)} className="p-1 bg-red-50 rounded text-red-600"><Trash2 size={14} /></button>
                               </div>
                            )}
                         </div>
@@ -529,7 +578,7 @@ export default function App() { // 這是正確的元件匯出
             <div className="bg-gradient-to-br from-red-900 to-red-800 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
               <div className="relative z-10">
                 <h2 className="text-lg font-bold opacity-90 mb-2 flex items-center gap-2">
-                  <Icon name="account_balance_wallet" className="text-amber-400" /> 旅費總覽 (已換算台幣)
+                  <Wallet className="text-amber-400" /> 旅費總覽 (已換算台幣)
                 </h2>
                 <div className="text-5xl font-extrabold tracking-tight">
                   <span className="text-xl mr-1">NT$</span>
@@ -542,7 +591,7 @@ export default function App() { // 這是正確的元件匯出
             {/* 匯率設定與換算 (整合區塊) */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
               <h3 className="text-sm font-bold text-stone-800 flex items-center gap-2 mb-4">
-                <Icon name="currency_exchange" size={16} /> 匯率設定與換算
+                <Banknote size={16} /> 匯率設定與換算
               </h3>
               
               {/* Manual Exchange Rate Input */}
@@ -553,7 +602,7 @@ export default function App() { // 這是正確的元件匯出
                   step="0.0001" // 提高精度
                   className="flex-1 bg-transparent text-center font-bold text-red-900 border-b border-red-300 focus:outline-none focus:border-amber-500"
                   value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
+                  onChange={(e) => setExchangeRate(parseFloat(e.target.value) || 0)} // 確保儲存為 number
                   aria-label="手動輸入日幣對台幣匯率"
                 />
                 <span className="text-red-700 font-bold shrink-0">TWD (台幣)</span>
@@ -566,7 +615,7 @@ export default function App() { // 這是正確的元件匯出
                 rel="noopener noreferrer"
                 className="w-full inline-flex justify-center items-center gap-1 text-xs text-stone-500 bg-stone-100 hover:bg-stone-200 p-2 rounded-lg mb-4 transition-colors"
               >
-                查詢今日匯率 (台灣銀行) <Icon name="open_in_new" size={12} />
+                查詢今日匯率 (台灣銀行) <ExternalLink size={12} />
               </a>
               
               {/* Quick Conversion */}
@@ -619,182 +668,197 @@ export default function App() { // 這是正確的元件匯出
                     <select 
                       className="w-full p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm appearance-none font-bold text-center"
                       value={newExpense.currency}
-                      onChange={e => setNewExpense({...newExpense, currency: e.target.value})}
+                      onChange={e => setNewExpense({...newExpense, currency: e.target.value as 'JPY' | 'TWD'})}
                     >
-                      <option value="JPY">JPY</option>
-                      <option value="TWD">TWD</option>
+                      <option value="JPY">JPY (日幣)</option>
+                      <option value="TWD">TWD (台幣)</option>
                     </select>
-                    <Icon name="arrow_drop_down" size={20} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-stone-500"/>
                   </div>
-                  
                   <input 
                     type="number" 
                     placeholder="金額" 
-                    className="flex-1 p-3 border border-stone-200 rounded-xl bg-stone-50 text-lg font-mono font-bold text-right focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="flex-1 p-3 border border-stone-200 rounded-xl bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                     value={newExpense.cost}
                     onChange={e => setNewExpense({...newExpense, cost: e.target.value})}
                   />
-                  <button 
-                    onClick={addExpense}
-                    className="p-3 bg-red-900 text-white rounded-xl hover:bg-red-800 transition-colors shrink-0 flex items-center justify-center shadow-md active:scale-[0.98]"
-                  >
-                    <Icon name="add" size={24} />
-                  </button>
                 </div>
+                <button 
+                  onClick={addExpense}
+                  className="w-full bg-stone-800 text-white p-3 rounded-xl font-bold active:scale-95 transition-transform"
+                >
+                  加入明細
+                </button>
               </div>
             </div>
 
-            {/* 記帳列表 */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100">
-              <h3 className="text-sm font-bold text-stone-700 mb-3 flex justify-between items-center">
-                <span><Icon name="list" size={16} className="inline-block mr-1 translate-y-[-1px]" /> 詳細紀錄</span>
-                <span className="text-xs text-stone-400">({expenses.length} 筆)</span>
-              </h3>
-              
-              <ul className="space-y-2">
-                {expenses.sort((a, b) => new Date(a.date) - new Date(b.date) || b.id - a.id) // 按日期排序
-                .map(ex => (
-                  <li key={ex.id} className="flex items-center justify-between bg-stone-50 p-3 rounded-lg border border-stone-100 hover:bg-stone-100 transition-colors">
-                    <div className="flex-1 truncate pr-3">
-                      <div className="font-medium text-stone-800 truncate">{ex.item}</div>
-                      <div className="text-xs text-stone-400 mt-0.5">{ex.date}</div>
+            {/* 紀錄列表 */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-stone-500 pl-1">消費紀錄</h3>
+              {expenses.length === 0 && (
+                <div className="text-center py-8 text-stone-300">
+                  <div className="text-4xl mb-2">💴</div>
+                  還沒有記帳喔
+                </div>
+              )}
+              {expenses.slice().reverse().map((ex: Expense) => { // <--- FIX TS7031
+                 const isJPY = ex.currency === 'JPY';
+                 // 使用儲存的匯率進行計算
+                 const rateToUse = ex.rateAtTimeOfEntry || 0; // 確保有值
+                 const twdEquivalent = isJPY 
+                    ? (ex.cost * rateToUse).toFixed(0) 
+                    : ex.cost.toFixed(0);
+
+                return (
+                  <div key={ex.id} className="bg-white p-4 rounded-xl border border-stone-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-1">
+                      {/* 品項 */}
+                      <span className="text-stone-700 font-medium max-w-[60%] truncate">{ex.item}</span>
+                      
+                      {/* 刪除按鈕 */}
+                      <button 
+                        onClick={() => deleteExpense(ex.id)}
+                        className="p-1 bg-red-50 rounded-full text-red-500 hover:bg-red-100 transition-colors shrink-0"
+                        aria-label="刪除帳目"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="font-bold text-lg text-red-900 font-mono">
-                        {ex.currency === 'JPY' ? '¥' : 'NT$'} {Number(ex.cost).toLocaleString()}
-                      </div>
-                      <div className="text-[10px] text-stone-500 mt-0.5">
-                        {ex.currency === 'JPY' ? `約 NT$${(ex.cost * ex.rateAtTimeOfEntry).toFixed(0)}` : '台幣原價'}
-                      </div>
+
+                    {/* 日期與匯率 */}
+                    <div className="flex justify-between items-end text-xs text-stone-400 border-t border-stone-50 pt-1">
+                        <span className="font-mono">{ex.date}</span>
+                        {isJPY && <span className="text-[10px] text-stone-400">鎖定匯率: {rateToUse.toFixed(4)}</span>}
                     </div>
-                    <button 
-                      onClick={() => deleteExpense(ex.id)}
-                      className="ml-3 p-1 text-red-500 hover:text-red-700 transition-colors"
-                      aria-label="刪除此筆記帳"
-                    >
-                      <Icon name="delete_outline" size={18} />
-                    </button>
-                  </li>
-                ))}
-                {expenses.length === 0 && (
-                  <li className="text-center text-sm text-stone-400 py-4">
-                    暫無記帳紀錄
-                  </li>
-                )}
-              </ul>
+
+                    {/* 金額與換算 */}
+                    <div className="flex justify-end mt-1">
+                        <div className="text-right">
+                            <span className="font-mono text-stone-800 font-bold text-lg flex items-center justify-end">
+                                {isJPY ? '¥' : 'NT$'}{ex.cost.toFixed(0)}
+                            </span>
+                            {isJPY && (
+                                <span className="text-xs text-stone-500">
+                                    ≈ NT${twdEquivalent}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* --- 資訊 Tab --- */}
+        {/* --- 資訊 Tab (加入伴手禮清單) --- */}
         {activeTab === 'info' && (
           <div className="p-4 space-y-6">
             
-            {/* 必買清單 */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
-              <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-                <Icon name="redeem" size={20} className="text-amber-500" /> 必買伴手禮清單
-              </h3>
-              <ul className="space-y-3">
-                {SOUVENIR_LIST.map((item, index) => (
-                  <li key={index} className="flex items-start bg-stone-50 p-3 rounded-lg border border-stone-100">
-                    <div className="w-6 shrink-0 text-center text-lg font-bold text-amber-600 mr-2 opacity-70">
-                      {index + 1}
+            {/* 航班資訊卡 */}
+            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+               <div className="bg-indigo-900 p-4 text-white flex justify-between items-center">
+                 <div className="font-bold flex items-center gap-2"><Plane size={18}/> 航班資訊</div>
+                 <div className="text-xs bg-indigo-800 px-2 py-1 rounded text-indigo-200">Peach 樂桃</div>
+               </div>
+               
+               <div className="p-5 space-y-6">
+                 {/* 去程 */}
+                 <div className="relative">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-3xl font-black text-stone-800">TPE</span>
+                      <span className="text-xs font-mono text-stone-400 mb-1 flex-1 text-center">MM722 • 2h 30m</span>
+                      <span className="text-3xl font-black text-stone-800">NGO</span>
                     </div>
-                    <div>
-                      <div className="font-medium text-stone-800">{item.name}</div>
-                      <div className="text-xs text-stone-500 mt-0.5">{item.desc}</div>
+                    <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden flex">
+                      <div className="w-1/2 bg-indigo-500 h-full"></div>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                    <div className="flex justify-between text-xs font-bold text-stone-600 mt-2">
+                       <span>12/18 02:55</span>
+                       <span>06:25</span>
+                    </div>
+                 </div>
+
+                 {/* 回程 */}
+                 <div className="relative pt-4 border-t border-stone-100">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-3xl font-black text-stone-800">NGO</span>
+                      <span className="text-xs font-mono text-stone-400 mb-1 flex-1 text-center">MM723 • 3h 40m</span>
+                      <span className="text-3xl font-black text-stone-800">TPE</span>
+                    </div>
+                    <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden flex">
+                      <div className="w-1/2 bg-indigo-500 h-full"></div>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold text-stone-600 mt-2">
+                       <span>12/22 22:45</span>
+                       <span>01:25 (+1)</span>
+                    </div>
+                 </div>
+               </div>
             </div>
 
-            {/* 緊急聯絡人 */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
-              <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-                <Icon name="call" size={20} className="text-blue-500" /> 緊急聯絡資訊
-              </h3>
-              <ul className="space-y-3">
-                {EMERGENCY_CONTACTS.map((contact, index) => (
-                  <li key={index} className="flex items-center justify-between bg-stone-50 p-3 rounded-lg border border-stone-100">
-                    <div className="font-medium text-stone-800">{contact.name}</div>
-                    <a href={`tel:${contact.phone}`} className="font-bold text-red-700 flex items-center gap-2 hover:underline">
-                      <Icon name="phone" size={16} /> {contact.phone}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            {/* 實用連結 */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
-                <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-                    <Icon name="link" size={20} className="text-indigo-500" /> 實用網站
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                    <a href="https://www.japan-guide.com/list/e1104.html" target="_blank" rel="noopener noreferrer" 
-                       className="flex flex-col items-center justify-center p-3 bg-indigo-50 rounded-xl text-indigo-800 hover:bg-indigo-100 transition-colors shadow-sm">
-                        <Icon name="explore" size={24} />
-                        <span className="text-sm font-medium mt-1 text-center">名古屋觀光</span>
-                    </a>
-                    <a href="https://transit.yahoo.co.jp/" target="_blank" rel="noopener noreferrer" 
-                       className="flex flex-col items-center justify-center p-3 bg-red-50 rounded-xl text-red-800 hover:bg-red-100 transition-colors shadow-sm">
-                        <Icon name="directions_train" size={24} />
-                        <span className="text-sm font-medium mt-1 text-center">交通查詢</span>
-                    </a>
-                </div>
+            {/* 伴手禮 (從工具區移動過來) */}
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-stone-200">
+              <div className="bg-amber-400 p-3 text-white flex items-center gap-2">
+                <ShoppingBag size={18} />
+                <span className="font-bold">名古屋必買清單</span>
+              </div>
+              <div className="p-4">
+                 <ul className="space-y-4">
+                  {SOUVENIR_LIST.map((item, i) => (
+                    <li key={i} className="flex gap-3 items-start">
+                      <div className="mt-0.5 bg-amber-100 text-amber-600 rounded p-0.5">
+                        <CheckSquare size={14} />
+                      </div>
+                      <div>
+                        <div className="font-bold text-stone-800 text-sm">{item.name}</div>
+                        <div className="text-xs text-stone-500 mt-0.5">{item.desc}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
+            {/* 緊急聯絡資訊 */}
+            <div className="bg-red-50 rounded-2xl p-5 border border-red-100">
+               <h3 className="text-sm font-bold text-red-800 mb-4 flex items-center gap-2">
+                <Phone size={16} /> 緊急求助電話
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {EMERGENCY_CONTACTS.map((c, i) => (
+                  <a key={i} href={`tel:${c.phone}`} className="bg-white p-3 rounded-xl shadow-sm border border-red-100 active:bg-red-50 transition-colors">
+                    <div className="text-xs text-stone-400 mb-1">{c.name}</div>
+                    <div className="text-base font-bold text-red-700 font-mono">{c.phone}</div>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
       </main>
 
-      {/* 底部導航 Bar */}
-      <footer className="fixed bottom-0 w-full max-w-md mx-auto bg-white border-t border-stone-200 shadow-2xl z-50">
-        <div className="flex justify-around py-2">
-          
-          <TabButton 
-            name="schedule" 
-            label="行程" 
-            icon="event" 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-          />
-          <TabButton 
-            name="wallet" 
-            label="記帳" 
-            icon="paid" 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-          />
-          <TabButton 
-            name="info" 
-            label="資訊" 
-            icon="info" 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-          />
-        </div>
-      </footer>
+      {/* 底部導航 */}
+      <nav className="bg-white border-t border-stone-200 h-[80px] flex justify-around items-start pt-3 absolute bottom-0 w-full max-w-md z-30 pb-safe shadow-[0_-5px_10px_rgba(0,0,0,0.02)]">
+        <button onClick={() => setActiveTab('schedule')} className={`flex flex-col items-center w-16 group ${activeTab === 'schedule' ? 'text-red-900' : 'text-stone-400'}`}>
+          <div className={`p-1.5 rounded-full transition-all ${activeTab === 'schedule' ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
+            <MapPin size={24} className={activeTab === 'schedule' ? 'fill-current' : ''} />
+          </div>
+          <span className="text-[10px] font-bold mt-1">行程</span>
+        </button>
+        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center w-16 group ${activeTab === 'wallet' ? 'text-red-900' : 'text-stone-400'}`}>
+           <div className={`p-1.5 rounded-full transition-all ${activeTab === 'wallet' ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
+             <Wallet size={24} className={activeTab === 'wallet' ? 'fill-current' : ''} />
+           </div>
+          <span className="text-[10px] font-bold mt-1">記帳</span>
+        </button>
+        <button onClick={() => setActiveTab('info')} className={`flex flex-col items-center w-16 group ${activeTab === 'info' ? 'text-red-900' : 'text-stone-400'}`}>
+           <div className={`p-1.5 rounded-full transition-all ${activeTab === 'info' ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
+             <Info size={24} className={activeTab === 'info' ? 'fill-current' : ''} />
+           </div>
+          <span className="text-[10px] font-bold mt-1">資訊</span>
+        </button>
+      </nav>
     </div>
   );
 }
-
-const TabButton = ({ name, label, icon, activeTab, setActiveTab }) => {
-  const isActive = activeTab === name;
-  const activeClass = isActive ? 'text-red-900' : 'text-stone-400';
-  const scaleClass = isActive ? 'scale-110' : 'scale-100';
-
-  return (
-    <button
-      onClick={() => setActiveTab(name)}
-      className={`flex flex-col items-center justify-center p-2 transition-all duration-300 ${activeClass} ${scaleClass}`}
-      aria-current={isActive ? 'page' : undefined}
-    >
-      <Icon name={icon} size={24} className={`transition-colors ${isActive ? 'fill-1' : 'fill-0'}`} />
-      <span className="text-xs font-medium mt-0.5">{label}</span>
-    </button>
-  );
-};
