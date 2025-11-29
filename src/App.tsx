@@ -1,4 +1,4 @@
-iimport React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   MapPin, CloudSun, Utensils, BedDouble, Phone, 
   Plane, Wallet, ShoppingBag, Edit3, Trash2, 
@@ -58,11 +58,22 @@ interface NewExpenseForm {
   currency: 'JPY' | 'TWD';
   date: string;
 }
+
+// 導航標籤類型
+type ActiveTab = 'schedule' | 'wallet' | 'info';
+
+// NavItem Prop 介面 (解決 785 行附近的 TS7031 錯誤)
+interface NavItemProps {
+  name: ActiveTab;
+  label: string;
+  Icon: React.ElementType; // 使用 React.ElementType 來表示 Lucide Icon
+  activeTab: ActiveTab;
+  setActiveTab: (tab: ActiveTab) => void;
+}
 // --- 結束 TypeScript Interfaces ---
 
 
-// --- 設定與模擬資料 ---
-
+// --- 設定與模擬資料 (略，與前次相同) ---
 const THEME = {
   primary: 'bg-red-900', 
   primaryText: 'text-red-900',
@@ -72,13 +83,8 @@ const THEME = {
   dashedLine: 'border-stone-400'
 };
 
-// 輔助函數：取得今日日期 (YYYY-MM-DD)
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
-/**
- * 處理導航動作，程式化開啟 Google Maps 連結。
- * @param {string} query 搜尋地點的關鍵字。
- */
 const navigateTo = (query: string) => {
     if (!query) return;
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -89,14 +95,11 @@ const navigateTo = (query: string) => {
     }
 };
 
-// 使用 confirm 替代 window.confirm
 const customConfirm = (message: string): boolean => {
   console.warn("使用瀏覽器內建 confirm，建議改用 custom modal。");
   return window.confirm(message);
 };
 
-
-// 根據 TripDay 介面調整模擬資料類型
 const INITIAL_TRIP_DATA: TripDay[] = [
   // Day 1
   {
@@ -254,8 +257,29 @@ const Tag: React.FC<{ text: string, color: string }> = ({ text, color }) => (
   </span>
 );
 
+/**
+ * 底部導航項目元件，解決 TS7031 錯誤
+ * 錯誤訊息中的 line 785 應是此元件在底部的渲染位置
+ */
+const NavItem: React.FC<NavItemProps> = ({ name, label, Icon, activeTab, setActiveTab }) => {
+  const isActive = activeTab === name;
+  return (
+    <button 
+      onClick={() => setActiveTab(name)} 
+      className={`flex flex-col items-center w-16 group ${isActive ? 'text-red-900' : 'text-stone-400'}`}
+    >
+      <div className={`p-1.5 rounded-full transition-all ${isActive ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
+        <Icon size={24} className={isActive ? 'fill-current' : ''} />
+      </div>
+      <span className="text-[10px] font-bold mt-1">{label}</span>
+    </button>
+  );
+};
+
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'schedule' | 'wallet' | 'info'>('schedule');
+  // 明確指定 ActiveTab 類型
+  const [activeTab, setActiveTab] = useState<ActiveTab>('schedule');
   const [currentDayId, setCurrentDayId] = useState<number>(1);
   const [tripData, setTripData] = useState<TripDay[]>(INITIAL_TRIP_DATA);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -270,19 +294,20 @@ export default function App() {
     date: getTodayDate() 
   });
   
-  // 全域匯率狀態 (用於換算工具和記帳當下的鎖定)
   const [exchangeRate, setExchangeRate] = useState<number>(0.2250);
   const [converterAmount, setConverterAmount] = useState<string>('');
 
-  // 匯率換算：使用當前全域匯率
+  // 匯率換算
   const calculatedCost = useMemo(() => {
     const rate = exchangeRate || 0;
-    return converterAmount ? (parseFloat(converterAmount) * rate).toFixed(0) : '0';
+    const amount = parseFloat(converterAmount);
+    if(isNaN(amount) || rate === 0) return '0';
+    return (amount * rate).toFixed(0);
   }, [converterAmount, exchangeRate]);
 
-  // 總花費計算：使用每筆紀錄鎖定的匯率，並明確定義 curr 為 Expense 類型
+  // 總花費計算 (TS2339 修正位置)
   const totalSpentTWD = useMemo(() => {
-    return expenses.reduce((acc: number, curr: Expense) => { // <--- FIX TS2339/TS7031
+    return expenses.reduce((acc: number, curr: Expense) => { // <--- 修正點：明確定義 curr 為 Expense 類型
       // 如果是日幣，使用當時鎖定的匯率 (curr.rateAtTimeOfEntry) 進行換算
       if (curr.currency === 'JPY') {
         return acc + (curr.cost * curr.rateAtTimeOfEntry);
@@ -292,7 +317,7 @@ export default function App() {
     }, 0).toFixed(0);
   }, [expenses]); 
 
-  // --- 行程編輯功能 ---
+  // --- 行程編輯功能 (略) ---
   const moveEvent = (dayId: number, eventIndex: number, direction: 'up' | 'down') => {
     const newTripData = [...tripData];
     const dayIndex = newTripData.findIndex(d => d.id === dayId);
@@ -318,7 +343,7 @@ export default function App() {
     setTripData(newTripData);
   };
 
-  // --- 記帳功能 ---
+  // --- 記帳功能 (TS2339 修正位置) ---
   const addExpense = () => {
     if (!newExpense.item || !newExpense.cost || !newExpense.date) return;
     
@@ -349,7 +374,8 @@ export default function App() {
   
   const deleteExpense = (id: number) => {
     if (customConfirm('確定刪除此筆帳目？')) {
-      setExpenses(expenses.filter((ex: Expense) => ex.id !== id));
+      // 修正點：明確定義 ex 為 Expense 類型
+      setExpenses(expenses.filter((ex: Expense) => ex.id !== id)); 
     }
   };
 
@@ -363,6 +389,13 @@ export default function App() {
       default: return { icon: <MapPin size={18} />, color: 'text-stone-600', bg: 'bg-white', border: 'border-stone-200' };
     }
   };
+  
+  // 導航項目列表 (解決 TS7031 錯誤)
+  const navItems: Omit<NavItemProps, 'activeTab' | 'setActiveTab'>[] = [
+    { name: 'schedule', label: '行程', Icon: MapPin },
+    { name: 'wallet', label: '記帳', Icon: Wallet },
+    { name: 'info', label: '資訊', Icon: Info },
+  ];
 
   return (
     <div className={`flex flex-col h-screen w-full max-w-md mx-auto ${THEME.bg} overflow-hidden font-sans text-stone-800`}>
@@ -414,7 +447,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 當日詳情 */}
+            {/* 當日詳情 (略) */}
             {tripData.filter(d => d.id === currentDayId).map((day: TripDay) => (
               <div key={day.id} className="animate-fadeIn px-4 pt-4">
                 
@@ -700,7 +733,7 @@ export default function App() {
                   還沒有記帳喔
                 </div>
               )}
-              {expenses.slice().reverse().map((ex: Expense) => { // <--- FIX TS7031
+              {expenses.slice().reverse().map((ex: Expense) => { 
                  const isJPY = ex.currency === 'JPY';
                  // 使用儲存的匯率進行計算
                  const rateToUse = ex.rateAtTimeOfEntry || 0; // 確保有值
@@ -838,26 +871,18 @@ export default function App() {
 
       </main>
 
-      {/* 底部導航 */}
+      {/* 底部導航 (修正 TS7031 錯誤的位置) */}
       <nav className="bg-white border-t border-stone-200 h-[80px] flex justify-around items-start pt-3 absolute bottom-0 w-full max-w-md z-30 pb-safe shadow-[0_-5px_10px_rgba(0,0,0,0.02)]">
-        <button onClick={() => setActiveTab('schedule')} className={`flex flex-col items-center w-16 group ${activeTab === 'schedule' ? 'text-red-900' : 'text-stone-400'}`}>
-          <div className={`p-1.5 rounded-full transition-all ${activeTab === 'schedule' ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
-            <MapPin size={24} className={activeTab === 'schedule' ? 'fill-current' : ''} />
-          </div>
-          <span className="text-[10px] font-bold mt-1">行程</span>
-        </button>
-        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center w-16 group ${activeTab === 'wallet' ? 'text-red-900' : 'text-stone-400'}`}>
-           <div className={`p-1.5 rounded-full transition-all ${activeTab === 'wallet' ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
-             <Wallet size={24} className={activeTab === 'wallet' ? 'fill-current' : ''} />
-           </div>
-          <span className="text-[10px] font-bold mt-1">記帳</span>
-        </button>
-        <button onClick={() => setActiveTab('info')} className={`flex flex-col items-center w-16 group ${activeTab === 'info' ? 'text-red-900' : 'text-stone-400'}`}>
-           <div className={`p-1.5 rounded-full transition-all ${activeTab === 'info' ? 'bg-red-50' : 'group-active:bg-stone-50'}`}>
-             <Info size={24} className={activeTab === 'info' ? 'fill-current' : ''} />
-           </div>
-          <span className="text-[10px] font-bold mt-1">資訊</span>
-        </button>
+        {navItems.map((item) => (
+          <NavItem 
+            key={item.name}
+            name={item.name}
+            label={item.label}
+            Icon={item.Icon}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        ))}
       </nav>
     </div>
   );
