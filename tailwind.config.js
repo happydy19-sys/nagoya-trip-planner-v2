@@ -1,9 +1,10 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  // 核心：告訴 Tailwind 掃描所有在 src/ 下的 .js, .jsx, .ts, .tsx 檔案
+module.exports = {
+  // 核心設定：讓 Tailwind 知道要去哪裡掃描和提取樣式類別
   content: [
-    "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
+    // 掃描專案根目錄及其子目錄下的所有 .html, .js, .jsx, .ts, .tsx 檔案
+    './src/**/*.{js,jsx,ts,tsx,html}',
+    './*.html', // 確保根目錄下的 index.html 也被掃描
   ],
   theme: {
     extend: {},
