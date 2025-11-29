@@ -1,9 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  // content 欄位告訴 Tailwind 哪些檔案需要掃描類別
+export default {
+  // 核心：告訴 Tailwind 掃描所有在 src/ 下的 .js, .jsx, .ts, .tsx 檔案
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
     extend: {},
