@@ -608,16 +608,16 @@ export default function App() {
           <div className="p-4 space-y-6">
             
             {/* 總覽卡片 */}
-            <div className="bg-gradient-to-br from-red-900 to-red-800 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
+            <div className="bg-gradient-to-br from-red-900 to-red-800 p-6 rounded-2xl shadow-lg  relative overflow-hidden">
               <div className="relative z-10">
-                <h2 className="text-lg font-bold opacity-90 mb-2 flex items-center gap-2">
-                  <Wallet className="text-gray-900" /> 旅費總覽 (已換算台幣)
+                <h2 className="text-lg font-bold mb-2 flex items-center gap-2 **text-stone-800**">
+                  <Wallet className="**text-red-600**" /> 旅費總覽 (已換算台幣)
                 </h2>
-                <div className="text-5xl font-extrabold tracking-tight">
+                <div className="text-5xl font-extrabold tracking-tight **text-gray-900**">
                   <span className="text-xl mr-1">NT$</span>
                   {Number(totalSpentTWD).toLocaleString()}
                 </div>
-                <p className='text-xs text-red-200 mt-2'>* 總額依每筆紀錄鎖定之匯率計算</p>
+                <p className='text-xs text-stone-500** mt-2'>* 總額依每筆紀錄鎖定之匯率計算</p>
               </div>
             </div>
 
