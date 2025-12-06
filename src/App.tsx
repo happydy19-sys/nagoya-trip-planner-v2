@@ -31,6 +31,7 @@ interface TripEvent {
   note?: string;
   highlight?: string;
   guide?: string;
+  navQuery?: string;
 }
 
 interface TripDay {
@@ -132,6 +133,7 @@ const INITIAL_TRIP_DATA: TripDay[] = [
       { id: '1-9', time: '19:00', title: '月島文字燒 & HARBS', type: 'food', 
         highlight: '必吃：明太子麻糬文字燒、水果千層', 
         guide: '文字燒要自己動手煎才好玩（雖然店員也會幫忙）。吃完正餐一定要去 HARBS 榮本店，這裡是發源地，水果千層蛋糕是絕對王者。' 
+        navQuery: 'HARBS 榮本店'
       },
     ]
   },
@@ -561,10 +563,10 @@ export default function App() {
                               )}
                               {canNavigate && (
                                 <button
-                                  onClick={() => navigateTo(event.title)}
+                                  onClick={() => navigateTo(event.navQuery || event.title)}
                                   className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-100 px-2 py-1 rounded-full border border-red-200 hover:bg-red-200 transition-colors"
-                                  aria-label={`導航至 ${event.title}`}
-                                >
+                                  aria-label={`導航至 ${event.title}`}
+                                >
                                   <Navigation size={10} /> 導航
                                 </button>
                               )}
