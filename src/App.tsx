@@ -611,7 +611,7 @@ export default function App() {
             <div className="bg-gradient-to-br from-red-900 to-red-800 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
               <div className="relative z-10">
                 <h2 className="text-lg font-bold opacity-90 mb-2 flex items-center gap-2">
-                  <Wallet className="text-amber-400" /> 旅費總覽 (已換算台幣)
+                  <Wallet className="text-gray-900" /> 旅費總覽 (已換算台幣)
                 </h2>
                 <div className="text-5xl font-extrabold tracking-tight">
                   <span className="text-xl mr-1">NT$</span>
