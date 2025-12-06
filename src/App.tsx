@@ -88,7 +88,7 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const navigateTo = (query: string) => {
     if (!query) return;
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
     try {
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
@@ -132,7 +132,7 @@ const INITIAL_TRIP_DATA: TripDay[] = [
       },
       { id: '1-9', time: '19:00', title: '月島文字燒 & HARBS', type: 'food', 
         highlight: '必吃：明太子麻糬文字燒、水果千層', 
-        guide: '文字燒要自己動手煎才好玩（雖然店員也會幫忙）。吃完正餐一定要去 HARBS 榮本店，這裡是發源地，水果千層蛋糕是絕對王者。' 
+        guide: '文字燒要自己動手煎才好玩（雖然店員也會幫忙）。吃完正餐一定要去 HARBS 榮本店，這裡是發源地，水果千層蛋糕是絕對王者。' ,
         navQuery: 'HARBS 榮本店'
       },
     ]
